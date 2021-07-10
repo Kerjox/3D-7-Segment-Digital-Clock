@@ -85,14 +85,18 @@ void setup () {
   dht.begin();
 
   if (!rtc.begin()) {
+
     Serial.println("Couldn't find RTC");
     while (1);
+
   }
 
   if (rtc.lostPower()) {
+
     Serial.println("RTC lost power, lets set the time!");
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
   }
     
   t1.every(1000 * 29, refreshDisplay); 
@@ -107,50 +111,68 @@ void loop () {
   t2.update();
   t3.update();
 
-  if (BTserial.available())
-  {
+  if (BTserial.available()) {
+
     char received = BTserial.read();
     btBuffer += received; 
 
-    if (received == '|')
-    {
+    if (received == '|') {
+
         processCommand();
         btBuffer = "";
+
     }
   }
 }
 
 void updateHue() {
-  if (colorMODE != 2)
-    return;
+
+  if (colorMODE != 2) return;
     
   colorCHSV.sat = 255;
   colorCHSV.val = 255;
-  if (colorCHSV.hue >= 255){
+
+  if (colorCHSV.hue >= 255) {
+
     colorCHSV.hue = 0;
+
   } else {
+
     colorCHSV.hue++;
+
   }
+
   refreshDisplay();
 }
 
 void refreshDisplay() {
+
   switch (mode) {
+
     case 0:
+
       displayClock();
       break;
+
     case 1:
+
       displayTemperature();
       break;
+
     case 2:
+
       displayHumidity();
       break;
+
     case 3:
+
       displayScoreboard();
-      break;      
+      break; 
+    
     case 4:
       // Time counter has it's own timer
       break;
+
     default:   
       break; 
   }
@@ -158,9 +180,12 @@ void refreshDisplay() {
 
 void refreshTimer() {
 
-  if (mode == 0 && blinkDots == 1) {    
+  if (mode == 0 && blinkDots == 1) {
+
     displayDots(3);
+
   } else if (mode == 4 && timerRunning == 1 && timerValue < 6000) {
+
     timerValue++;
 
     int m1 = (timerValue / 60) / 10 ;
@@ -173,60 +198,85 @@ void refreshTimer() {
     displaySegments(16, m2);    
     displaySegments(23, m1);  
     displayDots(0);  
+
     FastLED.show();
   }
 }
 
-void processCommand(){
+void processCommand() {
 
   if (btBuffer.startsWith("RGBD")) {
+
     long R = getValue(btBuffer, ',', 1).toInt();
     long G = getValue(btBuffer, ',', 2).toInt();
     long B = getValue(btBuffer, ',', 3).toInt();
     long D = getValue(btBuffer, ',', 4).toInt();
+
     colorCRGB.red = R;
     colorCRGB.green = G;
     colorCRGB.blue = B;
     colorMODE = 0;
+
     if (D > 0) FastLED.setBrightness(D); 
+
   } else if (btBuffer.startsWith("HSVD")) {
     long H = getValue(btBuffer, ',', 1).toInt();
     long S = getValue(btBuffer, ',', 2).toInt();
     long V = getValue(btBuffer, ',', 3).toInt();
     long D = getValue(btBuffer, ',', 4).toInt();
+
     colorCHSV.hue = H;
     colorCHSV.sat = S;
     colorCHSV.val = V;
     colorMODE = 1;
+
     if (D > 0) FastLED.setBrightness(D);
+
   } else if (btBuffer.startsWith("RTC")) {
+
     long y = getValue(btBuffer, ',', 1).toInt();
     long m = getValue(btBuffer, ',', 2).toInt();
     long d = getValue(btBuffer, ',', 3).toInt();
     long h = getValue(btBuffer, ',', 4).toInt();
     long mm = getValue(btBuffer, ',', 5).toInt();
     long s = getValue(btBuffer, ',', 6).toInt();
+
     rtc.adjust(DateTime(y, m, d, h, mm, s));
     Serial.println("DateTime set");
+
   } else if (btBuffer.startsWith("CLOCK")) {
-    mode = 0;    
+
+    mode = 0;  
+    
   } else if (btBuffer.startsWith("TEMPERATURE")) {
-    mode = 1;    
+
+    mode = 1; 
+
   } else if (btBuffer.startsWith("HUMIDITY")) {
+
     mode = 2;
+
   } else if (btBuffer.startsWith("SCOREBOARD")) {
+
     scoreLeft = getValue(btBuffer, ',', 1).toInt();
     scoreRight = getValue(btBuffer, ',', 2).toInt();
     mode = 3;    
+
   } else if (btBuffer.startsWith("STARTTIMER")) {
+
     timerValue = 0;
     timerRunning = 1;
-    mode = 4;    
+    mode = 4;  
+    
   } else if (btBuffer.startsWith("STOPTIMER")) {
+
     timerRunning = 0;
-    mode = 4;    
+    mode = 4; 
+    
   } else if (btBuffer.startsWith("CHANGINGPATTERN")) {
+
     colorMODE = 2;
+
   }
   
   refreshDisplay();
@@ -253,11 +303,15 @@ void displayClock() {
 }
 
 void displayTemperature() {
+
   float tmp = dht.readTemperature(temperatureMode == 'F' ? true : false);
 
   if (isnan(tmp)) {
+
     Serial.println("Failed to read from DHT sensor!");
+
   } else {
+
     int tmp1 = tmp / 10;
     int tmp2 = ((int)tmp) % 10;
     displaySegments(23, tmp1);    
@@ -265,28 +319,35 @@ void displayTemperature() {
     displaySegments(7,  10);    
     displaySegments(0, (temperatureMode == 'F' ? 14 : 11));
     displayDots(1);  
-    FastLED.show();    
+
+    FastLED.show();
   }  
 }
 
 void displayHumidity() {
+
   float hum = dht.readHumidity();
 
   if (isnan(hum)) {
+
     Serial.println("Failed to read from DHT sensor!");
+
   } else {
+
     int hum1 = hum / 10;
     int hum2 = ((int)hum) % 10;
     displaySegments(23, hum1);    
     displaySegments(16, hum2);
     displaySegments(7,  10);    
     displaySegments(0,  12);
-    displayDots(1);  
+    displayDots(1); 
+    
     FastLED.show();    
   }  
 }
 
 void displayScoreboard() {
+
   int s1 = scoreLeft % 10;
   int s2 = scoreLeft / 10;
   int s3 = scoreRight % 10;
@@ -295,30 +356,42 @@ void displayScoreboard() {
   displaySegments(7, s4);
   displaySegments(16, s1);    
   displaySegments(23, s2);
-  displayDots(2);  
+  displayDots(2); 
+
   FastLED.show();  
 }
 
 void displayDots(int dotMode) {
+
   // dotMode: 0=Both on, 1=Both Off, 2=Bottom On, 3=Blink
   switch (dotMode) {
+
     case 0:
+
       LEDs[14] = colorMODE == 0 ? colorCRGB : colorCHSV;
       LEDs[15] = colorMODE == 0 ? colorCRGB : colorCHSV; 
       break;
+
     case 1:
+
       LEDs[14] = colorOFF;
       LEDs[15] = colorOFF; 
       break;
+
     case 2:
+
       LEDs[14] = colorOFF;
       LEDs[15] = colorMODE == 0 ? colorCRGB : colorCHSV; 
       break;
+
     case 3:
+
       LEDs[14] = (LEDs[14] == colorOFF) ? (colorMODE == 0 ? colorCRGB : colorCHSV) : colorOFF;
       LEDs[15] = (LEDs[15] == colorOFF) ? (colorMODE == 0 ? colorCRGB : colorCHSV) : colorOFF;
+
       FastLED.show();  
       break;
+
     default:
       break;    
   }
@@ -345,17 +418,21 @@ void displaySegments(int startindex, int number) {
   };
 
   for (int i = 0; i < 7; i++) {
+
     LEDs[i + startindex] = ((numbers[number] & 1 << i) == 1 << i) ? (colorMODE == 0 ? colorCRGB : colorCHSV) : colorOFF;
   } 
 }
 
 String getValue(String data, char separator, int index) {
+
   int found = 0;
   int strIndex[] = {0, -1};
   int maxIndex = data.length()-1;
 
-  for(int i=0; i<=maxIndex && found<=index; i++){
-    if(data.charAt(i)==separator || i==maxIndex){
+  for(int i=0; i<=maxIndex && found<=index; i++) {
+
+    if(data.charAt(i)==separator || i==maxIndex) {
+
         found++;
         strIndex[0] = strIndex[1]+1;
         strIndex[1] = (i == maxIndex) ? i+1 : i;
